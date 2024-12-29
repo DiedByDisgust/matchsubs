@@ -5,9 +5,22 @@ for file in ./*.(mp4|avi|mkv);do
   echo "working with $file"
   file_extension=${file##*.}
   file_basename=$(basename $file .$file_extension)
+
   chapter_id=$(echo $file | sed 's/.*\(S..E..\).*/\1/')
-  target_season=$(echo $chapter_id | sed 's/S\(..\)E.*/\1/')
-  target_episode=$(echo $chapter_id | sed 's/.*E\(.*\)/\1/')
+  if [ -z "${chapter_id}" ];then
+    # subs are in a diferent format than SxxExx
+    # try SxEE format
+    chapter_id=$(echo $file | sed 's/.*\([[:digit:]]x[[:digit:]][[:digit:]]')
+    if [ -z "${chapter_id}" ];then
+      # subs are in a different format than SxEE
+      # chain anything else
+    else # subs are in the format SxEE
+      target_season=$(echo $chapter_id | sed 's/\(^.\).*/\1/')
+      target_episode=$(echo $chapter_id | sed 's/.*x\(..\)/\1/')
+  else # subs id are in the format SxxExx
+    target_season=$(echo $chapter_id | sed 's/S\(..\)E.*/\1/')
+    target_episode=$(echo $chapter_id | sed 's/.*E\(.*\)/\1/')
+  fi
 
   # get the list of subs but ignore ones that already match the basename
   target_subs=$(find ./*.srt -maxdepth 1 | grep -v $file_basename | grep -iE "(S$target_season|$(echo $target_season | sed 's/.//')x)" | grep -iE "(E$target_episode|x$target_episode)")

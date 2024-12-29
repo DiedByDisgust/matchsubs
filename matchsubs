@@ -1,1 +1,33 @@
-/home/diedbydisgust/Applications/matchsubs
+#!/bin/zsh
+mkdir -p .subs_backup
+for file in ./*.(mp4|avi|mkv);do
+  echo "=========================="
+  echo "working with $file"
+  file_extension=${file##*.}
+  file_basename=$(basename $file .$file_extension)
+  echo $file_basename
+  chapter_id=$(echo $file | sed 's/.*\(S..E..\).*/\1/')
+  target_season=$(echo $chapter_id | sed 's/S\(..\)E.*/\1/')
+  target_episode=$(echo $chapter_id | sed 's/.*E\(.*\)/\1/')
+  echo "episode $target_episode"
+  target_subs=$(find ./*.srt -maxdepth 1 | grep -v $file_basename | grep -iE "(S$target_season|$(echo $target_season | sed 's/.//')x)")
+  target_subs=$(echo $target_subs | grep -iE "(E$target_episode|x$target_episode)")
+  if [ -z "${target_subs}" ];then
+    echo "no subs for this file"
+  else
+    echo "subtitles for this file:"
+    echo $target_subs
+    subs_counter=0
+    while IFS= read -r target_subs_line;do
+      cp $target_subs_line .subs_backup
+      if ((subs_counter == 0));then
+        echo "new name: ${file_basename}.srt"
+        mv $target_subs_line ${file_basename}.srt
+      else
+        echo "new name: ${file_basename}($subs_counter).srt"
+        mv $target_subs_line ${file_basename}($subs_counter).srt
+      fi
+      ((subs_counter++))
+    done <<< "$target_subs"
+  fi
+done;
